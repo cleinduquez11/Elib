@@ -3,20 +3,14 @@ from flask import Flask, jsonify, request, send_from_directory, abort
 from pymongo import MongoClient
 from bson.objectid import ObjectId
 import json
-
-
-
 from flask_cors import CORS
 
 
-# client = MongoClient('mongodb://localhost:27017/')
-# db = client['your_database_name']
-# collection = db['your_collection_name']
 
 app = Flask(__name__)
 CORS(app, resources={r"/api/*": {"origins": "*"}})
 try:
-    client = MongoClient('mongodb+srv://flexiboxi:ciara0427@cluster0.8hzvo.mongodb.net/')
+    client = MongoClient('mongodb://localhost:27017/')
     db = client["Elib"]
     collection = db["Researches"]
     userCollection = db['Users']
@@ -26,13 +20,6 @@ except Exception as e:
     print("Error connecting to MongoDB:", e)
 
 
-# Sample data
-# data = [
-#     {"id": '1', "itneg_word": "Awan", "tagalog_translation": "Wala", "english_translation": "None"},
-#     {"id": '2', "itneg_word": "Kanayon", "tagalog_translation": "Kapitbahay", "english_translation": "Neighbor"},
-#     {"id": '3', "itneg_word": "Babassit", "tagalog_translation": "Maliit", "english_translation": "Small"}
-# ]
-
 
 UPLOAD_FOLDER = './uploads'
 app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
@@ -41,8 +28,6 @@ app.config['UPLOAD_FOLDER'] = UPLOAD_FOLDER
 
 @app.route('/api/download/<path:filename>', methods=['GET'])
 def download_file(filename):
-    # pth = request.args.get('dep')
-    # upload_folder = 'path_to_your_upload_folder'  # Change this to your upload directory path
     try:
         return send_from_directory(app.config['UPLOAD_FOLDER'], filename , as_attachment=True)
     except FileNotFoundError:
@@ -59,7 +44,7 @@ def get_researchByDep():
     data = list(collection.find({'department': department})) 
     print(f'{data}')
     
-    # # Extracting specified fields from the data
+
     result = [{
         "id": str(d["_id"]), 
         "college": d["college"], 
@@ -72,7 +57,7 @@ def get_researchByDep():
                  "tags": d["tags"]} 
               for d in data]
     
-    # print(result)
+
 
     if result:
         return jsonify(result)
@@ -92,7 +77,7 @@ def get_researchByFilter():
     data = list(collection.find( {filter: filVal.lower()})) 
     print(f'{data}')
     
-    # # Extracting specified fields from the data
+
     result = [{
         "id": str(d["_id"]), 
         "college": d["college"], 
@@ -105,15 +90,13 @@ def get_researchByFilter():
                  "tags": d["tags"]} 
               for d in data]
     
-    # print(result)
+
 
     if result:
         return jsonify(result)
     else:
         return jsonify({"status": "failed"}), 400
-######################################################################################################################################################
 
-# Handling the creation of researchm uploading file in the server
 
 @app.route('/api/research', methods=['POST'])
 def add_research():
@@ -125,7 +108,6 @@ def add_research():
     if file.filename == '':
         return jsonify({"error": "No file selected for uploading"}), 400
     dat = request.form.get('dat')
-    # UPLOAD_FOLDER = "./uploads/{{dat}}"
     data = json.loads(dat)
     print(data['college'])
 
@@ -149,18 +131,16 @@ def add_research():
             "status": "failed",
             'message': 'Title, filename, or abstract already exists. Please enter unique values.'
         }), 200
-    # Save the file
+
     upload_dir = os.path.join(app.config['UPLOAD_FOLDER'] , data['college'], data['department'] )
     nested_dir = os.path.join(data['college'], data['department'])
-    # upload_dir = os.path.join(app.config['UPLOAD_FOLDER'], college, department)
+
     os.makedirs(upload_dir, exist_ok=True)
     file_path = os.path.join(upload_dir, file.filename)
     nested_dir = str(data['college']) + '/' + str(data['department']) + '/' + str(file.filename)
     file.save(file_path)
 
-    # Process the additional fields
 
-    # Add additional form fields processing here
     document = {
                     'college': data['college'],
                                     'department': data['department'],
@@ -179,11 +159,10 @@ def add_research():
     print(f"Content: {data}")
     print(f"File saved to: {file_path}")
 
-    # Respond to the client
+
     return jsonify({"status": "success", "filename": file.filename}), 200
 
 
-####################################################################################################################################################
 
 @app.route('/api/research', methods=['PATCH'])
 def edit_research():
@@ -194,17 +173,11 @@ def edit_research():
     document_id = ObjectId(str(new_entry["id"])) 
     print(new_entry)
     
-    # required_fields = ["itneg_word", "tagalog_translation", "english_translation"]
-    # for field in required_fields:
-    #     if field not in new_entry:
-    #         return jsonify({"error": f"'{field}' is a required field"}), 400
 
-    # new_id = max([d["id"] for d in data]) + 1 if data else 1
-    # new_entry["id"] = new_id
-    filter_criteria = {"_id": document_id}  # Specify the filter criteria to identify the document to be updated
+    filter_criteria = {"_id": document_id}  
     update_data = {"$set": new_entry}
     res = collection.update_one(filter_criteria,update_data )
-    # data.append(new_entry)
+
     
     return jsonify({"status": "success"}), 200
 
@@ -220,18 +193,10 @@ def delete_task():
     document_id = ObjectId(str(new_entry["id"])) 
     print(new_entry)
     
-    # required_fields = ["itneg_word", "tagalog_translation", "english_translation"]
-    # for field in required_fields:
-    #     if field not in new_entry:
-    #         return jsonify({"error": f"'{field}' is a required field"}), 400
 
-    # new_id = max([d["id"] for d in data]) + 1 if data else 1
-    # new_entry["id"] = new_id
-    filter_criteria = {"_id": document_id}  # Specify the filter criteria to identify the document to be updated
-    # update_data = {"$set": result}
+    filter_criteria = {"_id": document_id}  
     result = collection.delete_one(filter_criteria)
-    # collection.delete_one(filter_criteria)
-    # data.append(new_entry)
+
     
     
     print(new_entry)
@@ -244,8 +209,6 @@ def delete_task():
         print("Document not found or not deleted.")
         return jsonify({"status": "failed"}), 200
 
-
-    # return jsonify({"status": "success"}), 200
 
 
 
@@ -264,16 +227,8 @@ def register():
 
     print(new_entry)
     
-    # required_fields = ["itneg_word", "tagalog_translation", "english_translation"]
-    # for field in required_fields:
-    #     if field not in new_entry:
-    #         return jsonify({"error": f"'{field}' is a required field"}), 400
-
-    # new_id = max([d["id"] for d in data]) + 1 if data else 1
-    # new_entry["id"] = new_id
 
     userCollection.insert_one(new_entry)
-    # data.append(new_entry)
     
     return jsonify({"status": "success"}), 200
 
@@ -287,13 +242,6 @@ def login():
 
     print(new_entry)
     
-    # required_fields = ["itneg_word", "tagalog_translation", "english_translation"]
-    # for field in required_fields:
-    #     if field not in new_entry:
-    #         return jsonify({"error": f"'{field}' is a required field"}), 400
-
-    # new_id = max([d["id"] for d in data]) + 1 if data else 1
-    # new_entry["id"] = new_id
 
     user = userCollection.find_one({'username':new_entry['username'], 'password':new_entry['password']})
     print(user)
@@ -304,8 +252,7 @@ def login():
         return jsonify({"status": "success", "user_id": str(user['_id'])}), 200
 
     
-    # data.append(new_entry)
-    
+
     
 
 
